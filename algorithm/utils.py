@@ -57,3 +57,25 @@ def infiniteloop(dataloader):
     while True:
         for x, y in iter(dataloader):
             yield x
+
+
+def generate_FMNSGF(model, savedir, step, time, stepsize, steps, net_="normal"):
+    model.eval()
+    
+    # model_ = copy.deepcopy(model)
+    x0 = torch.randn(64, 3, 32, 32).to(device)
+    for i in range(steps):
+        t = i*stepsize * torch.ones(x0.shape[0],).to(device)
+        vt = model(t, x0)
+        x0 = x0 + vt * stepsize
+    node_ = NeuralODE(model, solver="euler", sensitivity="adjoint")
+    with torch.no_grad():
+        traj = node_.trajectory(
+            x0,
+            t_span=torch.linspace(time, time+1, 100).to(device),
+        )
+        traj = traj[-1, :].view([-1, 3, 32, 32]).clip(-1, 1)
+        traj = traj / 2 + 0.5
+    save_image(traj, savedir + f"{net_}_generated_FM_images_step_{step}.png", nrow=8)
+
+    model.train()
