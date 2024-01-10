@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from geomloss import SamplesLoss
 from algorithm.optimal_transport import OTPlanSampler
-
+from torchvision.utils import make_grid, save_image
 
 class SD(object):
     def __init__(self, blur, scaling, x0, init_mass) ->  None:
@@ -34,10 +34,10 @@ class SD(object):
             torch.sum(first_var_aa), self.particles
         )[0]
         with torch.no_grad():
-            vector_field = first_var_ab_grad - first_var_aa_grad
+            vector_field = first_var_aa_grad - first_var_ab_grad
             self.velocity = vector_field
             noise = torch.randn_like(vector_field)
-            self.particles = self.particles - step_size * vector_field + math.sqrt(2* step_size * noise_scale) * noise 
+            self.particles = self.particles + step_size * vector_field + math.sqrt(2* step_size * noise_scale) * noise 
 
         self.particles.requires_grad = False
         torch.cuda.empty_cache()
@@ -127,6 +127,14 @@ class Sinkhorn_gradient_decent(object):
             if step != steps-1:
                 self.record_support.append(support)  #[time, batch_size, 3*32*32]
             self.record_velocity.append(v)
+            # check
+            # savedir = f'./results/check_snapshot'
+            # os.makedirs(savedir, exist_ok=True)
+            # if step % 10 == 0 or step == steps - 1:
+            #     saveimg = support.view([-1, 3, 32, 32]).clip(-1, 1)
+            #     saveimg = saveimg / 2 + 0.5
+            #     save_image(saveimg, savedir + f"/generated_SD_images_step_{step}.png", nrow=10)
+            
         algorithm.SD_clear_all()
         del algorithm
 

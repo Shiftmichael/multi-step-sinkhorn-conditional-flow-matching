@@ -147,7 +147,7 @@ def train(argv):
             for flag in range(FLAGS.multi_samples):
                 t = t_n[flag] * FLAGS.SD_stepsize
                 xt = xt_n[flag].view(-1, 3, 32, 32)
-                ut = ut_n[flag].view(-1, 3, 32, 32)
+                ut = ut_n[flag].view(-1, 3, 32, 32) 
                 vt = net_model(t, xt)
                 loss = torch.mean((vt - ut) ** 2)
                 loss.backward()

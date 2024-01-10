@@ -19,8 +19,8 @@ flags.DEFINE_integer("num_channel", 128, help="base channel of UNet")
 
 # Training
 flags.DEFINE_string("input_dir", "./results", help="output_directory")
-flags.DEFINE_string("model", "FMNSGF", help="flow matching model type")
-flags.DEFINE_integer("step", 7000, help="training steps")
+flags.DEFINE_string("model", "NSGF", help="flow matching model type")
+flags.DEFINE_integer("step", 2000, help="training steps")
 flags.DEFINE_integer("multi_samples", 20, help="multi flow samples training")
 FLAGS(sys.argv)
 
@@ -36,10 +36,10 @@ new_net = UNetModelWrapper(
 ).to(device)
 
 
-PATH = f"{FLAGS.input_dir}/{FLAGS.model}/blur2.0_scaling0.8_steps6_size0.2_20/cifar10_weights_step_{FLAGS.step}.pt"
+PATH = f"{FLAGS.input_dir}/{FLAGS.model}/blur2.0_scaling0.8_steps100_size0.03_50/"
 print("path: ", PATH)
 
-checkpoint = torch.load(PATH)
+checkpoint = torch.load(PATH+f'cifar10_weights_step_{FLAGS.step}.pt')
 state_dict = checkpoint["ema_model"]
 
 new_net.load_state_dict(state_dict)
@@ -49,15 +49,15 @@ new_net.eval()
 steps = 5
 stepsize = 0.2
 x0 = torch.randn(64, 3, 32, 32).to(device)
-for i in range(steps):
-    t = i*stepsize * torch.ones(x0.shape[0],).to(device)
-    vt = new_net(t, x0)
-    x0 = x0 + vt * stepsize
+# for i in range(steps):
+#     t = i*stepsize * torch.ones(x0.shape[0],).to(device)
+#     vt = new_net(t, x0)
+#     x0 = x0 + vt * stepsize
 node_ = NeuralODE(new_net, solver="euler", sensitivity="adjoint")
 with torch.no_grad():
     traj = node_.trajectory(
-        x0,
-        t_span=torch.linspace(1, 2, 100).to(device),
+        torch.randn(64, 3, 32, 32).to(device),
+        t_span=torch.linspace(0, -3, 100).to(device),
     )
     traj = traj[-1, :].view([-1, 3, 32, 32]).clip(-1, 1)
     traj = traj / 2 + 0.5
